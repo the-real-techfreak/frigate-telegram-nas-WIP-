@@ -257,6 +257,3 @@ echo "STEP 2: Open /main/frigate/config/config.yml and set your camera URL."
 echo "STEP 3: Run 'cd /main && docker compose up -d'"
 
 
-
-
-# Use the command wget -O setup.sh https://raw.githubusercontent.com/your-username/your-repo/main/install.sh && chmod +x setup.sh && sudo ./setup.sh
