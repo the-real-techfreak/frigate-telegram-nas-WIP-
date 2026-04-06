@@ -1,35 +1,56 @@
-# frigate-telegram-nas
+# FRIGATE -- TELEGRAM -- NAS
 
-This repo is created for installing and setting up Frigate NVR, enable an automation to save the frigate "review" clips (Review -> compilation of simultaneous events) in a particular folder and then send this clip to the user through Telegram Bot - Send Video service. Please note that as of Frigate 0.17, the API doesn't allow for a compiled clip for each review item but individual event clips can be called.
+This repo is created for the following requirements 
+- One-click installation of Frigate NVR
+- Enable automatic saving of review clips to local folder (optionally to NAS)
+- Notify the saved review clip through Telegram Bot service
 
-The setup is tested on a Debian distro installed on a Proxmox container.Hardware for this setup include a tiny PC (HP Elitedesk 800 G3 mini with Intel Core i5) and a Coral TPU
+(Note: Review -> compilation of simultaneous events; as of Frigate 0.17, the API doesn't allow for a compiled clip for each review item but individual event clips can be called)
 
-# Installation Steps
+# Pre-requisites for Installation
 
-It is assumed that a MQTT Broker with valid username and password is already available.
-If not, an MQTT Broker (Mosquitto, EMQX, etc.) can also be installed in the same machine
+Following are the prerequisites for this installation
+- Working Linux distro on a machine with network connectivity
+- Accessible MQTT Broker with valid username and password. (In case there is no external MQTT broker setup, applications like Eclipse, EMQX, etc. can be installed on the same machine)
 
-Once the distro is installed on a machine, SSH into the system and run the following command
+If the setup is being deployed in a Proxmox container along with an edge device like Coral TPU, USB-Pass through is essential which can be enabled by the following commands
+
+Enter the following command in Proxmox Node Shell
 ```bash
-wget -O setup.sh https://raw.githubusercontent.com/the-real-techfreak/frigate-telegram-nas/main/install.sh && chmod +x setup.sh && sudo ./setup.sh
+cd /etc/pve/lxc 
 ```
-# Post-Installation Steps
+Locate the .conf file related to the container (e.g: 100.conf) and run the following command
+```bash
+nano 100.conf
+```
+Add the following lines at the end of the file to allow USB-Pass through
+```bash
+lxc.mount.entry: /dev/bus/usb/001/ dev/bus/usb/001/ none bind,optional,create=dir 0,0
+lxc.mount.entry: /dev/bus/usb/002/ dev/bus/usb/002/ none bind,optional,create=dir 0,0
+lxc.mount.entry: /dev/bus/usb/003/ dev/bus/usb/003/ none bind,optional,create=dir 0,0 
+```
 
-Once the script finishes, you need to update the following: 
-- provide your specific credentials in /main/.env file
-- Update the camera details in the /main/frigate/config/config.yml (a generic template is provided for reference)
+# Frigate NVR Installation
 
+SSH into the machine and run the following command
+```bash
+wget -O frigate.sh https://raw.githubusercontent.com/the-real-techfreak/frigate-telegram-nas/main/install_frigate.sh && chmod +x frigate.sh && sudo ./frigate.sh
+```
+The above script completes the following actions
+- Install Docker, Docker-Compose and corresponding dependencies
+- Create **directories** for frigate container (\main\frigate\{config,data}
+- Create a sample **configuration** for frigate (\main\frigate\config\config.yml)
+- Create a **.env** file for user input related to MQTT (\main\.env)
+- Create a **compose.yml** (\main\compose.yml) for docker-compose to run the following containers -> dozzle (monitoring logs), frigate
 
-# What is included in the script
+If the requirement is only Frigate installation, please proceed to below steps after the script finishes, to complete the setup:
+- provide MQTT details in the .env file using the following command
+```bash
+sudo nano \main\.env
+```
+- Update the frigate config file with your camera details using the following command
+```bash
+sudo nano \main\frigate\config\config.yml
+```
 
-The script includes the following 
-- **Docker Engine & Compose:** Official repository installation.
-- **Docker containers Setup:** Dozzle, Frigate NVR, Python Script container (for clip archive and telegram services)
-
-A quick description of the containers isntalled:
-- **Dozzle:** Real-time log viewer for your containers (Port 8080).
-- **Frigate NVR:** Ready for USB Coral and Intel Hardware Acceleration.
-- **Custom Notifier:** A Python-based Telegram bot that sends clips from Frigate "reviews" via MQTT.
-
-Configuring your services:
-- **Centralized Config:** All sensitive credentials are managed via a single `.env` file.
+If you need to save the review clips and forward them using Telegram Bot, please proceed to the next step 
