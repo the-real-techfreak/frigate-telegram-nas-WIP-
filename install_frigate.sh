@@ -2,10 +2,10 @@
 set -e
 
 # Improved root check
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root"
-  exit 1
-fi
+#if [ "$EUID" -ne 0 ]; then
+#  echo "Please run as root"
+#  exit 1
+#fi
 
 # Fallback for the username if SUDO_USER is blank
 USER_NAME=${SUDO_USER:-$USER}
