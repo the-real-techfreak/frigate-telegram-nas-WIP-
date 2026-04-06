@@ -38,19 +38,100 @@ wget -O frigate.sh https://raw.githubusercontent.com/the-real-techfreak/frigate-
 ```
 The above script completes the following actions
 - Install Docker, Docker-Compose and corresponding dependencies
-- Create **directories** for frigate container (\main\frigate\{config,data}
-- Create a sample **configuration** for frigate (\main\frigate\config\config.yml)
-- Create a **.env** file for user input related to MQTT (\main\.env)
-- Create a **compose.yml** (\main\compose.yml) for docker-compose to run the following containers -> dozzle (monitoring logs), frigate
+- Create **directories** for frigate container (/main/frigate/{config,data}
+- Create a sample **configuration** for frigate (/main/frigate/config/config.yml)
+- Create a **.env** file for user input related to MQTT (/main/.env)
+- Create a **compose.yml** (/main/compose.yml) for docker-compose to run the following containers -> dozzle (monitoring logs), frigate
+
 
 If the requirement is only Frigate installation, please proceed to below steps after the script finishes, to complete the setup:
 - provide MQTT details in the .env file using the following command
+  
 ```bash
-sudo nano \main\.env
+sudo nano /main/.env
 ```
 - Update the frigate config file with your camera details using the following command
+  
 ```bash
-sudo nano \main\frigate\config\config.yml
+sudo nano /main/frigate/config/config.yml
 ```
 
 If you need to save the review clips and forward them using Telegram Bot, please proceed to the next step 
+
+
+# Notifier Installation
+
+The below script needs to be executed after installing Frigate NVR from the above step.
+
+SSH into the machine and run the following command
+
+```bash
+wget -O notifier.sh https://raw.githubusercontent.com/the-real-techfreak/frigate-telegram-nas/main/install_notifier.sh && chmod +x notifier.sh && sudo ./notifier.sh
+```
+The above script completes the following actions
+- Create directories for notifier and review clips collection (/main/{notifier, clips})
+- Add python script for clip download and notify it using telegram bot, along with dependancies
+- Update the .env file with Telegram variables for user input
+- Update the docker compose file with Python script container
+
+To complete the setup, please update as below:
+- Update the MQTT and Telegram Bot details in .env file using the following command
+
+```bash
+sudo nano /main/.env
+```
+- Update the frigate config file with your camera details using the following command
+  
+```bash
+sudo nano /main/frigate/config/config.yml
+```
+
+# Optional - NAS Archiving from Proxmox LXC
+
+Mounting a SMB share in an LXC container is slightly different from mounting the same on a stand-alone Linux Machine or VM as we will have problems with FSTAB in mounting on boot
+
+The steps are as below:
+- Store the SMB credentials in a file (e.g: /main/.smbcred) using nano
+```bash
+sudo nano /main/.smbcred
+```
+
+```bash
+username=smbuser
+password=smbpass
+```
+
+- Mount the network drive to a folder using FSTAB
+```bash
+sudo nano /etc/fstab
+```
+
+```bash
+//smb-ip-address/share /frigate-archive cifs credentials=/main/.smbcred,iocharset=utf8,uid=0,gid=0,vers=3.0,_netdev,nofail 0 0
+```
+
+- Create a file named "rc.local" in /etc and add the below script
+```bash
+sudo nano /etc/rc.local
+```
+
+```bash
+#!/bin/sh -e
+sleep 10
+mount -a
+exit 0
+```
+- Give privileges to the newly created file
+```bash
+sudo chmod +x /etc/rc.local
+```
+
+Once it is confirmed that Network drive is mounted perfectly, a cronjob can be implemented to continuously move the frigate clips to Network Drive periodically by using the following commands
+```bash
+crontab -e
+```
+
+```bash
+*/5 * * * * mkdir -p /frigate-archive/$(date '+\%Y')/$(date '+\%Y-\%m-\%d') && mv /main/clips/* /frigate-archive/$(date '+\%Y')/$(date '+\%Y-\%m-\%d')
+
+```
