@@ -1,5 +1,13 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+# Ensure script runs as root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ Please run as root (use sudo)"
+  exit 1
+fi
+
+BASE_DIR="/main"
 
 echo "🚀 Starting BASE setup (Docker + Frigate)..."
 
@@ -7,70 +15,72 @@ echo "🚀 Starting BASE setup (Docker + Frigate)..."
 # Install Docker
 # -------------------------
 echo "🧹 Removing old Docker..."
-sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
+apt-get remove -y docker docker-engine docker.io containerd runc || true
 
 echo "🔄 Updating system..."
-sudo apt-get update -y
+apt-get update -y
 
 echo "📦 Installing dependencies..."
-sudo apt-get install -y ca-certificates curl gnupg lsb-release
+apt-get install -y ca-certificates curl gnupg lsb-release
 
 echo "🔑 Adding Docker key..."
-sudo mkdir -p /etc/apt/keyrings
+mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 echo "📁 Adding repo..."
 echo \
 "deb [arch=$(dpkg --print-architecture) \
 signed-by=/etc/apt/keyrings/docker.gpg] \
 https://download.docker.com/linux/debian \
-$(lsb_release -cs) stable" | \
-sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+$(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
-sudo apt-get update -y
+apt-get update -y
 
 echo "🐳 Installing Docker..."
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-sudo systemctl enable docker
-sudo systemctl start docker
-sudo usermod -aG docker $USER || true
+systemctl enable docker
+systemctl start docker
+
+# Add user to docker group (if not root login)
+if [ -n "${SUDO_USER:-}" ]; then
+  usermod -aG docker "$SUDO_USER" || true
+fi
 
 # -------------------------
 # Directories
 # -------------------------
 echo "📁 Creating directories..."
-sudo mkdir -p /main/frigate/{config,data}
+mkdir -p $BASE_DIR/frigate/{config,data}
 
 # -------------------------
 # .env
 # -------------------------
 echo "📝 Creating .env..."
-sudo tee /main/.env > /dev/null << 'EOF'
+cat > $BASE_DIR/.env << 'EOF'
 MQTT_HOST=192.168.0.229
 MQTT_PORT=1883
 MQTT_USER=frigate
 MQTT_PASS=frigate
 
-FRIGATE_URL=http://frigate:5000
+FRIGATE_URL=http://192.168.0.248:5000
 EOF
 
-sudo chmod 600 /main/.env
+chmod 600 $BASE_DIR/.env
 
 # -------------------------
 # Frigate config
 # -------------------------
 echo "📝 Creating Frigate config..."
-sudo tee /main/frigate/config/config.yml > /dev/null << 'EOF'
+cat > $BASE_DIR/frigate/config/config.yml << 'EOF'
 # MQTT Setup
 mqtt:
-  host: 192.168.0.229
+  host: 100.64.0.2
   port: 1883
   user: frigate
   password: frigate
 
-# Hardware Setup
 detectors:
   coral:
     type: edgetpu
@@ -79,7 +89,6 @@ detectors:
 ffmpeg:
   hwaccel_args: preset-vaapi
 
-# System Options
 detect:
   width: 2688
   height: 1664
@@ -130,7 +139,6 @@ record:
   motion:
     days: 1
 
-# Camera Setup
 go2rtc:
   streams:
     outdoorcamhd:
@@ -160,10 +168,8 @@ cameras:
 
 semantic_search:
   enabled: false
-  model_size: small
 face_recognition:
   enabled: false
-  model_size: small
 lpr:
   enabled: false
 classification:
@@ -177,7 +183,7 @@ EOF
 # Docker Compose
 # -------------------------
 echo "📝 Creating compose..."
-sudo tee /main/compose.yml > /dev/null << 'EOF'
+cat > $BASE_DIR/compose.yml << 'EOF'
 services:
   dozzle:
     container_name: dozzle
@@ -219,6 +225,6 @@ EOF
 echo ""
 echo "✅ BASE SETUP COMPLETE"
 echo "👉 Run:"
-echo "docker compose --env-file /main/.env -f /main/compose.yml up -d"
+echo "docker compose --env-file $BASE_DIR/.env -f $BASE_DIR/compose.yml up -d"
 echo ""
-echo "⚠️ Logout/login required for docker group"
+echo "⚠️ Re-login required for docker group"
