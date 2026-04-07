@@ -59,10 +59,10 @@ mkdir -p $BASE_DIR/frigate/{config,data}
 # -------------------------
 echo "📝 Creating .env..."
 cat > $BASE_DIR/.env << 'EOF'
-MQTT_HOST=192.168.0.229
-MQTT_PORT=1883
-MQTT_USER=frigate
-MQTT_PASS=frigate
+MQTT_HOST=
+MQTT_PORT=
+MQTT_USER=
+MQTT_PASS=
 
 FRIGATE_URL=http://frigate:5000
 EOF
@@ -76,10 +76,10 @@ echo "📝 Creating Frigate config..."
 cat > $BASE_DIR/frigate/config/config.yml << 'EOF'
 # MQTT Setup
 mqtt:
-  host: 100.64.0.2
-  port: 1883
-  user: frigate
-  password: frigate
+  host: 
+  port: 
+  user: 
+  password: 
 
 detectors:
   coral:
@@ -141,16 +141,16 @@ record:
 
 go2rtc:
   streams:
-    outdoorcamhd:
-      - rtsp://admin:D@S97ika@192.168.0.150:554/cam/realmonitor?channel=1&subtype=0
+    cameraname:
+      - rtsp://username:password@camera-ip:554/cam/realmonitor?channel=1&subtype=0
 
 cameras:
-  outdoorcamhd:
+  cameraname:
     ffmpeg:
       output_args:
         record: preset-record-generic-audio-copy
       inputs:
-        - path: rtsp://127.0.0.1:8554/outdoorcamhd
+        - path: rtsp://127.0.0.1:8554/cameraname
           input_args: preset-rtsp-restream
           roles:
             - detect
@@ -159,9 +159,7 @@ cameras:
       threshold: 50
       contour_area: 20
       improve_contrast: true
-      mask:
-        - 0.699,0.023,0.701,0.094,0.991,0.098,0.993,0.017
-        - 0.388,0.109,0.468,0.097,0.481,0.253,0.396,0.281
+ 
 
     detect:
       annotation_offset: 0
