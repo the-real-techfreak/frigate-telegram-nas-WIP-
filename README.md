@@ -50,7 +50,7 @@ If the requirement is only Frigate installation, please proceed to below steps a
 ```bash
 sudo nano /main/.env
 ```
-- Update the frigate config file with your camera details using the following command
+- Update the frigate config file with your camera details and MQTT Broker details using the following command
   
 ```bash
 sudo nano /main/frigate/config/config.yml
