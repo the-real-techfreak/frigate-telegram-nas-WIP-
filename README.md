@@ -13,6 +13,8 @@ Following are the prerequisites for this installation
 - Working Linux distro on a machine with network connectivity
 - Accessible MQTT Broker with valid username and password. (In case there is no external MQTT broker setup, applications like Eclipse, EMQX, etc. can be installed on the same machine)
 
+# Optional - Proxmox USB Passthrough
+
 If the setup is being deployed in a Proxmox container along with an edge device like Coral TPU, USB-Pass through is essential which can be enabled by the following commands
 
 Enter the following command in Proxmox Node Shell
